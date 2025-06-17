@@ -1,26 +1,33 @@
 [tool.poetry]
-name = "Soccer Video Analytics"
+name = "soccer-video-analytics"
 version = "0.1.0"
 description = ""
 authors = ["Diego Marvid <dmarvid@tryolabs.com>", "Diego Fernandez <dfernandez@tryolabs.com"]
+packages = [
+    { include = "soccer" },
+    { include = "inference" }
+]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<3.14"
 norfair = {git = "https://github.com/tryolabs/norfair.git", rev = "master"}
-torch = "^1.12.1"
+torch = "^2.7.1"
 opencv-python = "^4.6.0.66"
-numpy = "^1.23.4"
-Pillow = "^9.2.0"
-matplotlib = "^3.6.1"
-pandas = "^1.5.0"
-torchvision = "^0.13.1"
-PyYAML = "^6.0"
+numpy = "^1.26.4"
+Pillow = "^11.2.1"
+matplotlib = "^3.10.3"
+pandas = "^2.3.0"
+torchvision = "^0.22.1"
+PyYAML = "^6.0.2"
 tqdm = "^4.64.1"
 seaborn = "^0.12.0"
 ipython = "^8.5.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.1.1"
+pytest-cov = "^5.0.0"
+pytest-mock = "^3.12.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "setuptools>=42", "wheel"]
 build-backend = "poetry.core.masonry.api"
