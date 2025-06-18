@@ -1,11 +1,12 @@
-from typing import List
+from typing import List, Tuple
 
-import cv2
 import numpy as np
-import PIL
+import PIL.Image
+import PIL.ImageDraw
 
 from soccer.ball import Ball
 from soccer.draw import Draw
+import PIL.ImageFont
 from soccer.pass_event import Pass, PassEvent
 from soccer.player import Player
 from soccer.team import Team
@@ -57,19 +58,19 @@ class Match:
 
         self.update_possession()
 
-        if ball is None or ball.detection is None:
+        if ball.detection is None:
             self.closest_player = None
             return
 
         self.ball = ball
 
-        closest_player = min(players, key=lambda player: player.distance_to_ball(ball))
+        closest_player = min(players, key=lambda player: player.distance_to_ball(ball) or float('inf'))
 
         self.closest_player = closest_player
 
         ball_distance = closest_player.distance_to_ball(ball)
 
-        if ball_distance > self.ball_distance_threshold:
+        if ball_distance is None or ball_distance > self.ball_distance_threshold:
             self.closest_player = None
             return
 
@@ -83,6 +84,7 @@ class Match:
         if (
             self.possession_counter >= self.possesion_counter_threshold
             and closest_player.team is not None
+            and self.current_team is not None
         ):
             self.change_team(self.current_team)
 
@@ -107,9 +109,6 @@ class Match:
         """
         Updates match duration and possession counter of team in possession
         """
-        if self.team_possession is None:
-            return
-
         self.team_possession.possession += 1
         self.duration += 1
 
@@ -135,7 +134,7 @@ class Match:
 
         return home_passes + away_passes
 
-    def possession_bar(self, frame: PIL.Image.Image, origin: tuple) -> PIL.Image.Image:
+    def possession_bar(self, frame: PIL.Image.Image, origin: Tuple[int, int]) -> PIL.Image.Image:
         """
         Draw possession bar
 
@@ -193,30 +192,30 @@ class Match:
             home_text = (
                 f"{int(self.home.get_percentage_possession(self.duration) * 100)}%"
             )
-
-            frame = Draw.text_in_middle_rectangle(
-                img=frame,
-                origin=left_rectangle[0],
-                width=left_rectangle[1][0] - left_rectangle[0][0],
-                height=left_rectangle[1][1] - left_rectangle[0][1],
-                text=home_text,
-                color=self.home.text_color,
-            )
+            draw = PIL.ImageDraw.Draw(frame)
+            bbox = draw.textbbox((0, 0), home_text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            rect_width = left_rectangle[1][0] - left_rectangle[0][0]
+            rect_height = left_rectangle[1][1] - left_rectangle[0][1]
+            x = left_rectangle[0][0] + (rect_width - text_width) // 2
+            y = left_rectangle[0][1] + (rect_height - text_height) // 2
+            draw.text((x, y), home_text, fill=self.home.text_color)
 
         # Draw away text
         if ratio < 0.85:
             away_text = (
                 f"{int(self.away.get_percentage_possession(self.duration) * 100)}%"
             )
-
-            frame = Draw.text_in_middle_rectangle(
-                img=frame,
-                origin=right_rectangle[0],
-                width=right_rectangle[1][0] - right_rectangle[0][0],
-                height=right_rectangle[1][1] - right_rectangle[0][1],
-                text=away_text,
-                color=self.away.text_color,
-            )
+            draw = PIL.ImageDraw.Draw(frame)
+            bbox = draw.textbbox((0, 0), away_text)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+            rect_width = right_rectangle[1][0] - right_rectangle[0][0]
+            rect_height = right_rectangle[1][1] - right_rectangle[0][1]
+            x = right_rectangle[0][0] + (rect_width - text_width) // 2
+            y = right_rectangle[0][1] + (rect_height - text_height) // 2
+            draw.text((x, y), away_text, fill=self.away.text_color)
 
         return frame
 
@@ -224,10 +223,10 @@ class Match:
         self,
         frame: PIL.Image.Image,
         ratio: float,
-        left_rectangle: tuple,
-        left_color: tuple,
-        right_rectangle: tuple,
-        right_color: tuple,
+        left_rectangle: Tuple[Tuple[int, int], List[int]],
+        left_color: Tuple[int, int, int],
+        right_rectangle: Tuple[List[int], List[int]],
+        right_color: Tuple[int, int, int],
     ) -> PIL.Image.Image:
         """Draw counter rectangle for both teams
 
@@ -292,7 +291,7 @@ class Match:
 
         return frame
 
-    def passes_bar(self, frame: PIL.Image.Image, origin: tuple) -> PIL.Image.Image:
+    def passes_bar(self, frame: PIL.Image.Image, origin: Tuple[int, int]) -> PIL.Image.Image:
         """
         Draw passes bar
 
@@ -399,9 +398,9 @@ class Match:
         """
 
         counter = PIL.Image.open("./images/possession_board.png").convert("RGBA")
-        counter = Draw.add_alpha(counter, 210)
-        counter = np.array(counter)
-        red, green, blue, alpha = counter.T
+        counter = Draw.add_alpha(counter, 210)  # type: ignore
+        counter = np.array(counter)  # type: ignore
+        red, green, blue, alpha = counter.T  # type: ignore
         counter = np.array([blue, green, red, alpha])
         counter = counter.transpose()
         counter = PIL.Image.fromarray(counter)
@@ -419,9 +418,9 @@ class Match:
         """
 
         counter = PIL.Image.open("./images/passes_board.png").convert("RGBA")
-        counter = Draw.add_alpha(counter, 210)
-        counter = np.array(counter)
-        red, green, blue, alpha = counter.T
+        counter = Draw.add_alpha(counter, 210)  # type: ignore
+        counter = np.array(counter)  # type: ignore
+        red, green, blue, alpha = counter.T  # type: ignore
         counter = np.array([blue, green, red, alpha])
         counter = counter.transpose()
         counter = PIL.Image.fromarray(counter)
@@ -431,7 +430,7 @@ class Match:
     def draw_counter_background(
         self,
         frame: PIL.Image.Image,
-        origin: tuple,
+        origin: Tuple[int, int],
         counter_background: PIL.Image.Image,
     ) -> PIL.Image.Image:
         """
@@ -459,9 +458,9 @@ class Match:
         frame: PIL.Image.Image,
         text: str,
         counter_text: str,
-        origin: tuple,
-        color: tuple,
-        text_color: tuple,
+        origin: Tuple[int, int],
+        color: Tuple[int, int, int],
+        text_color: Tuple[int, int, int],
         height: int = 27,
         width: int = 120,
     ) -> PIL.Image.Image:
@@ -522,26 +521,22 @@ class Match:
             rectangle=time_rectangle,
             color=(239, 234, 229),
             radius=20,
-            left=True,
         )
+        
+        draw = PIL.ImageDraw.Draw(frame)
+        bbox = draw.textbbox((0, 0), text)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = team_rectangle[0][0] + (team_width - text_width) // 2
+        y = team_rectangle[0][1] + (height - text_height) // 2
+        draw.text((x, y), text, fill=text_color)
 
-        frame = Draw.text_in_middle_rectangle(
-            img=frame,
-            origin=team_rectangle[0],
-            height=height,
-            width=team_width,
-            text=text,
-            color=text_color,
-        )
-
-        frame = Draw.text_in_middle_rectangle(
-            img=frame,
-            origin=time_rectangle[0],
-            height=height,
-            width=time_width,
-            text=counter_text,
-            color="black",
-        )
+        bbox = draw.textbbox((0, 0), counter_text)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = time_rectangle[0][0] + (time_width - text_width) // 2
+        y = time_rectangle[0][1] + (height - text_height) // 2
+        draw.text((x, y), counter_text, fill="black")
 
         return frame
 
@@ -558,24 +553,27 @@ class Match:
         PIL.Image.Image
             Drawed video frame
         """
-        if self.closest_player and self.ball:
+        if self.closest_player and self.ball and self.ball.center is not None:
             closest_foot = self.closest_player.closest_foot_to_ball(self.ball)
 
-            color = (0, 0, 0)
-            # Change line color if its greater than threshold
-            distance = self.closest_player.distance_to_ball(self.ball)
-            if distance > self.ball_distance_threshold:
-                color = (255, 255, 255)
+            if closest_foot is not None:
+                color = (0, 0, 0)
+                # Change line color if its greater than threshold
+                distance = self.closest_player.distance_to_ball(self.ball)
+                if distance is not None and distance > self.ball_distance_threshold:
+                    color = (255, 255, 255)
 
-            draw = PIL.ImageDraw.Draw(frame)
-            draw.line(
-                [
-                    tuple(closest_foot),
-                    tuple(self.ball.center),
-                ],
-                fill=color,
-                width=2,
-            )
+                draw = PIL.ImageDraw.Draw(frame)
+                draw.line(
+                    [
+                        tuple(closest_foot),
+                        tuple(self.ball.center),
+                    ],
+                    fill=color,
+                    width=2,
+                )
+        
+        return frame
 
     def draw_possession_counter(
         self,
@@ -637,7 +635,7 @@ class Match:
         )
 
         if self.closest_player:
-            frame = self.closest_player.draw_pointer(frame)
+            frame = self.closest_player.draw(frame)
 
         if debug:
             frame = self.draw_debug(frame=frame)
@@ -704,7 +702,7 @@ class Match:
         )
 
         if self.closest_player:
-            frame = self.closest_player.draw_pointer(frame)
+            frame = self.closest_player.draw(frame)
 
         if debug:
             frame = self.draw_debug(frame=frame)

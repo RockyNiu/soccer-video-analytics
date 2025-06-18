@@ -1,9 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 import norfair
 import numpy as np
-from norfair import Detection
-from norfair.camera_motion import MotionEstimator
+from norfair.tracker import Detection  # type: ignore
+from norfair.camera_motion import MotionEstimator, CoordinatesTransformation  # type: ignore
 
 from inference import Converter, YoloV5
 from soccer import Ball, Match
@@ -11,7 +11,7 @@ from soccer import Ball, Match
 
 def get_ball_detections(
     ball_detector: YoloV5, frame: np.ndarray
-) -> List[norfair.Detection]:
+) -> List[Detection]:
     """
     Uses custom Yolov5 detector in order
     to get the predictions of the ball and converts it to
@@ -29,14 +29,14 @@ def get_ball_detections(
     List[norfair.Detection]
         List of ball detections
     """
-    ball_df = ball_detector.predict(frame)
+    ball_df = ball_detector.predict([frame])
     ball_df = ball_df[ball_df["confidence"] > 0.3]
     return Converter.DataFrame_to_Detections(ball_df)
 
 
 def get_player_detections(
     person_detector: YoloV5, frame: np.ndarray
-) -> List[norfair.Detection]:
+) -> List[Detection]:
     """
     Uses YoloV5 Detector in order to detect the players
     in a match and filter out the detections that are not players
@@ -55,14 +55,14 @@ def get_player_detections(
         List of player detections
     """
 
-    person_df = person_detector.predict(frame)
+    person_df = person_detector.predict([frame])
     person_df = person_df[person_df["name"] == "person"]
     person_df = person_df[person_df["confidence"] > 0.35]
     person_detections = Converter.DataFrame_to_Detections(person_df)
     return person_detections
 
 
-def create_mask(frame: np.ndarray, detections: List[norfair.Detection]) -> np.ndarray:
+def create_mask(frame: np.ndarray, detections: List[Detection]) -> np.ndarray:
     """
 
     Creates mask in order to hide detections and goal counter for motion estimation
@@ -117,7 +117,7 @@ def update_motion_estimator(
     motion_estimator: MotionEstimator,
     detections: List[Detection],
     frame: np.ndarray,
-) -> "CoordinatesTransformation":
+) -> CoordinatesTransformation:
     """
 
     Update coordinate transformations every frame
@@ -142,7 +142,7 @@ def update_motion_estimator(
     return coord_transformations
 
 
-def get_main_ball(detections: List[Detection], match: Match = None) -> Ball:
+def get_main_ball(detections: List[Detection], match: Optional[Match] = None) -> Ball:
     """
     Gets the main ball from a list of balls detection
 

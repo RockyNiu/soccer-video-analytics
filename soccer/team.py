@@ -1,14 +1,20 @@
-from typing import List
+from typing import List, Optional, TYPE_CHECKING
+from soccer.draw import RGB
+
+if TYPE_CHECKING:
+    from soccer.player import Player
+    from soccer.pass_event import Pass
 
 
 class Team:
     def __init__(
         self,
         name: str,
-        color: tuple = (0, 0, 0),
+        id: Optional[int] = None,
+        color: RGB = (0, 0, 0),
         abbreviation: str = "NNN",
-        board_color: tuple = None,
-        text_color: tuple = (0, 0, 0),
+        board_color: Optional[RGB] = None,
+        text_color: RGB = (0, 0, 0),
     ):
         """
         Initialize Team
@@ -17,27 +23,26 @@ class Team:
         ----------
         name : str
             Team name
-        color : tuple, optional
+        id : int, optional
+            Team ID
+        color : RGB, optional
             Team color, by default (0, 0, 0)
         abbreviation : str, optional
             Team abbreviation, by default "NNN"
-
-        Raises
-        ------
-        ValueError
-            If abbreviation is not 3 characters long or not uppercase
+        board_color : RGB, optional
+            Board color for the team, by default None
+        text_color : RGB, optional
+            Text color for the team, by default (0, 0, 0)
         """
         self.name = name
-        self.possession = 0
-        self.passes = []
+        self.id = id
         self.color = color
         self.abbreviation = abbreviation
+        self.board_color = board_color if board_color is not None else color
         self.text_color = text_color
-
-        if board_color is None:
-            self.board_color = color
-        else:
-            self.board_color = board_color
+        self.players: List["Player"] = []
+        self.possession: int = 0
+        self.passes: List["Pass"] = []
 
         if len(abbreviation) != 3 or not abbreviation.isupper():
             raise ValueError("abbreviation must be length 3 and uppercase")
@@ -94,14 +99,14 @@ class Team:
     def __str__(self):
         return self.name
 
-    def __eq__(self, other: "Team") -> bool:
-        if isinstance(self, Team) == False or isinstance(other, Team) == False:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Team):
             return False
 
         return self.name == other.name
 
     @staticmethod
-    def from_name(teams: List["Team"], name: str) -> "Team":
+    def from_name(teams: List["Team"], name: str) -> Optional["Team"]:
         """
         Return team object from name
 
@@ -114,8 +119,8 @@ class Team:
 
         Returns
         -------
-        Team
-            Team object
+        Optional[Team]
+            Team object or None if not found
         """
         for team in teams:
             if team.name == name:

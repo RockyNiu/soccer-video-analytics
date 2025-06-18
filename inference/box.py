@@ -1,46 +1,53 @@
-from typing import Tuple
-
+from typing import Optional
 import numpy as np
+from numpy.typing import NDArray
+
+from .types import Box as BoxBase
 
 
-class Box:
-    def __init__(self, top_left: Tuple, bottom_right: Tuple, img: np.ndarray):
+class Box(BoxBase):
+    """A bounding box in an image."""
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        img: Optional[NDArray[np.uint8]] = None
+    ):
         """
-        Initialize Box
+        Initialize Box with coordinates and optional image data
 
         Parameters
         ----------
-        top_left : Tuple
-            Top left corner of the box
-        bottom_right : Tuple
-            Bottom right corner of the box
-        img : np.ndarray
-            Image containing the box
+        x : float
+            X coordinate of top-left corner
+        y : float
+            Y coordinate of top-left corner
+        width : float
+            Width of the box
+        height : float
+            Height of the box
+        img : Optional[NDArray[np.uint8]], optional
+            Image containing the box, by default None
         """
-        self.top_left = top_left
-        self.bottom_right = bottom_right
+        super().__init__(x, y, width, height)
+        self.img = self.cut(img.copy()) if img is not None else None
 
-        # make tuples int
-        self.top_left = (int(self.top_left[0]), int(self.top_left[1]))
-        self.bottom_right = (int(self.bottom_right[0]), int(self.bottom_right[1]))
-
-        self.img = self.cut(img.copy())
-
-    def cut(self, img: np.ndarray) -> np.ndarray:
+    def cut(self, img: NDArray[np.uint8]) -> NDArray[np.uint8]:
         """
         Cuts the box from the image
 
         Parameters
         ----------
-        img : np.ndarray
+        img : NDArray[np.uint8]
             Image containing the box
 
         Returns
         -------
-        np.ndarray
+        NDArray[np.uint8]
             Image containing only the box
         """
-        return img[
-            self.top_left[1] : self.bottom_right[1],
-            self.top_left[0] : self.bottom_right[0],
-        ]
+        x1, y1 = self.points[0]
+        x2, y2 = self.points[1]
+        return img[y1:y2, x1:x2]

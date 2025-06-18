@@ -1,17 +1,20 @@
-from typing import Iterable, List
-
+from typing import Iterable, List, TYPE_CHECKING, Tuple, Any
+from numpy.typing import NDArray
 import numpy as np
-import PIL
+from PIL import Image
 
 from soccer.ball import Ball
 from soccer.draw import AbsolutePath, PathPoint
-from soccer.player import Player
-from soccer.team import Team
+
+if TYPE_CHECKING:
+    from soccer.player import Player
+    from soccer.team import Team
+    from norfair.camera_motion import CoordinatesTransformation  # type: ignore
 
 
 class Pass:
     def __init__(
-        self, start_ball_bbox: np.ndarray, end_ball_bbox: np.ndarray, team: Team
+        self, start_ball_bbox: NDArray[np.float64], end_ball_bbox: NDArray[np.float64], team: "Team"
     ) -> None:
         # Abs coordinates
         self.start_ball_bbox = start_ball_bbox
@@ -20,8 +23,8 @@ class Pass:
         self.draw_abs = AbsolutePath()
 
     def draw(
-        self, img: PIL.Image.Image, coord_transformations: "CoordinatesTransformation"
-    ) -> PIL.Image.Image:
+        self, img: Image.Image, coord_transformations: "CoordinatesTransformation"
+    ) -> Image.Image:
         """Draw a pass
 
         Parameters
@@ -51,15 +54,15 @@ class Pass:
 
         new_pass = [rel_point_start, rel_point_end]
 
-        pass_filtered = self.draw_abs.filter_points_outside_frame(
-            path=new_pass,
+        pass_filtered = self.draw_abs.filter_points_outside_frame(  # type: ignore
+            points=new_pass,  # Changed from path= to points=
             width=img.size[0],
             height=img.size[0],
             margin=3000,
         )
 
         if len(pass_filtered) == 2:
-            img = self.draw_abs.draw_arrow(
+            img = self.draw_abs.draw_arrow(  # type: ignore
                 img=img, points=pass_filtered, color=self.team.color, width=6, alpha=150
             )
 
@@ -67,10 +70,10 @@ class Pass:
 
     @staticmethod
     def draw_pass_list(
-        img: PIL.Image.Image,
+        img: Image.Image,
         passes: List["Pass"],
         coord_transformations: "CoordinatesTransformation",
-    ) -> PIL.Image.Image:
+    ) -> Image.Image:
         """Draw all the passes
 
         Parameters
@@ -94,7 +97,7 @@ class Pass:
 
     def get_relative_coordinates(
         self, coord_transformations: "CoordinatesTransformation"
-    ) -> tuple:
+    ) -> Tuple[Any, Any]:
         """
         Print the relative coordinates of a pass
 
@@ -113,7 +116,7 @@ class Pass:
 
         return (relative_start, relative_end)
 
-    def get_center(self, points: np.array) -> tuple:
+    def get_center(self, points: NDArray[np.float64]) -> Tuple[float, float]:
         """
         Returns the center of the points
 
@@ -135,7 +138,7 @@ class Pass:
 
         return (center_x, center_y)
 
-    def round_iterable(self, iterable: Iterable) -> Iterable:
+    def round_iterable(self, iterable: Iterable[float]) -> List[int]:
         """
         Round all entries from one Iterable object
 
@@ -152,7 +155,7 @@ class Pass:
         return [round(item) for item in iterable]
 
     def generate_output_pass(
-        self, start: np.ndarray, end: np.ndarray, team_name: str
+        self, start: NDArray[np.float64], end: NDArray[np.float64], team_name: str
     ) -> str:
         """
         Generate a string with the pass information
@@ -215,7 +218,7 @@ class PassEvent:
         self.player_with_ball_threshold = 3
         self.player_with_ball_threshold_dif_team = 4
 
-    def update(self, closest_player: Player, ball: Ball) -> None:
+    def update(self, closest_player: "Player", ball: Ball) -> None:
         """
         Updates the player with the ball counter
 
@@ -238,7 +241,7 @@ class PassEvent:
 
         self.init_player_with_ball = closest_player
 
-    def validate_pass(self, start_player: Player, end_player: Player) -> bool:
+    def validate_pass(self, start_player: "Player", end_player: "Player") -> bool:
         """
         Check if there is a pass between two players of the same team
 
@@ -262,8 +265,8 @@ class PassEvent:
         return True
 
     def generate_pass(
-        self, team: Team, start_pass: np.ndarray, end_pass: np.ndarray
-    ) -> Pass:
+        self, team: "Team", start_pass: NDArray[np.float64], end_pass: NDArray[np.float64]
+    ) -> "Pass":
         """
         Generate a new pass
 
@@ -281,7 +284,7 @@ class PassEvent:
         Pass
             The generated instance of the Pass class
         """
-        start_pass_bbox = [start_pass, start_pass]
+        start_pass_bbox = start_pass  # start_pass is already an ndarray
 
         new_pass = Pass(
             start_ball_bbox=start_pass_bbox,
@@ -300,6 +303,12 @@ class PassEvent:
             if self.last_player_with_ball is None:
                 self.last_player_with_ball = self.init_player_with_ball
 
+            # Check if we have the required objects before proceeding
+            if (self.last_player_with_ball is None or 
+                self.closest_player is None or 
+                self.ball is None):
+                return
+
             valid_pass = self.validate_pass(
                 start_player=self.last_player_with_ball,
                 end_player=self.closest_player,
@@ -308,9 +317,15 @@ class PassEvent:
             if valid_pass:
                 # Generate new pass
                 team = self.closest_player.team
+                if team is None:
+                    return
+                    
                 start_pass = self.last_player_with_ball.closest_foot_to_ball_abs(
                     self.ball
                 )
+                if start_pass is None or self.ball.detection is None:
+                    return
+                    
                 end_pass = self.ball.detection.absolute_points
 
                 new_pass = self.generate_pass(
