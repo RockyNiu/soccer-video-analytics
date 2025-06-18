@@ -1,5 +1,4 @@
 import argparse
-import os
 
 import cv2
 import numpy as np
@@ -50,32 +49,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 video = Video(input_path=args.video)
-fps = video.video_capture.get(cv2.CAP_PROP_FPS)
+fps = video.video_capture.get(cv2.CAP_PROP_FPS)  # type: ignore
 
 # Object Detectors
 player_detector = YoloV5()
 ball_detector = YoloV5(model_path=args.model)
 
-# HSV Classifier
-filters = TeamFilters()
-
-# Add Chelsea team filter
-filters.add_team_filter(
-    name="Chelsea",
-    colors=[blue, green]
-)
-
-# Add Man City team filter
-filters.add_team_filter(
-    name="Man City",
-    colors=[sky_blue]
-)
-
-# Add Referee filter
-filters.add_team_filter(
-    name="Referee",
-    colors=[black]
-)
+filters = TeamFilters.from_config_file(args.config)
 
 hsv_classifier = HSVClassifier(filters=filters.to_hsv_classifier_format())
 
