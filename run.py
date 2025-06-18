@@ -1,14 +1,16 @@
 import argparse
+import os
 
 import cv2
 import numpy as np
-import PIL
-from norfair import Tracker, Video
+from PIL import Image
+from norfair.video import Video
+from norfair.tracker import Tracker
 from norfair.camera_motion import MotionEstimator
 from norfair.distances import mean_euclidean
 
 from inference import Converter, HSVClassifier, InertiaClassifier, YoloV5
-from inference.filters import filters
+from inference.filters import TeamFilters
 from run_utils import (
     get_ball_detections,
     get_main_ball,
@@ -30,6 +32,12 @@ parser.add_argument(
     "--model", default="models/ball.pt", type=str, help="Path to the model"
 )
 parser.add_argument(
+    "--config",
+    default="team_config.json",
+    type=str,
+    help="Path to the team configuration file",
+)
+parser.add_argument(
     "--passes",
     action="store_true",
     help="Enable pass detection",
@@ -49,7 +57,27 @@ player_detector = YoloV5()
 ball_detector = YoloV5(model_path=args.model)
 
 # HSV Classifier
-hsv_classifier = HSVClassifier(filters=filters)
+filters = TeamFilters()
+
+# Add Chelsea team filter
+filters.add_team_filter(
+    name="Chelsea",
+    colors=[blue, green]
+)
+
+# Add Man City team filter
+filters.add_team_filter(
+    name="Man City",
+    colors=[sky_blue]
+)
+
+# Add Referee filter
+filters.add_team_filter(
+    name="Referee",
+    colors=[black]
+)
+
+hsv_classifier = HSVClassifier(filters=filters.to_hsv_classifier_format())
 
 # Add inertia to classifier
 classifier = InertiaClassifier(classifier=hsv_classifier, inertia=20)
@@ -127,7 +155,7 @@ for i, frame in enumerate(video):
     match.update(players, ball)
 
     # Draw
-    frame = PIL.Image.fromarray(frame)
+    frame = Image.fromarray(frame)
 
     if args.possession:
         frame = Player.draw_players(

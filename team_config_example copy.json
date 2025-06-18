@@ -1,0 +1,16 @@
+{
+  "teams": [
+    {
+      "name": "Chelsea",
+      "colors": ["blue", "green"]
+    },
+    {
+      "name": "Man City",
+      "colors": ["sky_blue"]
+    },
+    {
+      "name": "Referee",
+      "colors": ["black"]
+    }
+  ]
+}
