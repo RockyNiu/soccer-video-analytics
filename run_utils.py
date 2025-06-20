@@ -142,9 +142,13 @@ def update_motion_estimator(
         coord_transformations = motion_estimator.update(frame, mask=mask)
         return coord_transformations
     except Exception as e:
-        if "findHomography" in str(e) or "at least 4 corresponding point sets" in str(e):
-            # Not enough feature points for homography calculation
-            print(f"Warning: Not enough feature points for motion estimation. Trying fallback strategies...")
+        error_msg = str(e)
+        if ("findHomography" in error_msg or 
+            "at least 4 corresponding point sets" in error_msg or
+            "'NoneType' object is not subscriptable" in error_msg or
+            "sparse flow" in error_msg.lower()):
+            # Motion estimation failed due to insufficient features or optical flow issues
+            print(f"Warning: Motion estimation failed ({type(e).__name__}: {error_msg}). Trying fallback strategies...")
             
             # Fallback 1: Try with a less restrictive mask (smaller margin)
             try:
@@ -166,7 +170,8 @@ def update_motion_estimator(
             # Fallback 2: Try with no mask (allow detection areas)
             try:
                 no_mask = np.ones(frame.shape[:2], dtype=frame.dtype)
-                # Only remove goal counter                no_mask[69:200, 160:510] = 0
+                # Only remove goal counter
+                no_mask[69:200, 160:510] = 0
                 
                 coord_transformations = motion_estimator.update(frame, mask=no_mask)
                 print("Success with minimal mask (goal counter only).")
