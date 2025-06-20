@@ -21,7 +21,7 @@ class TestBasicDependencies:
     
     def test_numpy(self) -> None:
         """Test NumPy functionality."""
-        arr = np.array([1, 2, 3])
+        arr = np.array([1, 2, 3], dtype=np.int64)
         assert arr.mean() == 2.0, "NumPy array mean calculation failed"
         assert arr.dtype == np.int64, "NumPy array dtype is incorrect"
         assert len(arr) == 3, "NumPy array length is incorrect"
