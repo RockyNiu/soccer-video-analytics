@@ -5,9 +5,9 @@ from PIL import Image
 
 from soccer.ball import Ball
 from soccer.draw import AbsolutePath, PathPoint
+from soccer.player import Player
 
 if TYPE_CHECKING:
-    from soccer.player import Player
     from soccer.team import Team
     from norfair.camera_motion import CoordinatesTransformation  # type: ignore
 

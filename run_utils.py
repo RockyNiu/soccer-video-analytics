@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
+import cv2
 import norfair
 import numpy as np
 from norfair.tracker import Detection  # type: ignore
@@ -117,7 +118,7 @@ def update_motion_estimator(
     motion_estimator: MotionEstimator,
     detections: List[Detection],
     frame: np.ndarray,
-) -> CoordinatesTransformation:
+) -> Optional[CoordinatesTransformation]:
     """
 
     Update coordinate transformations every frame
@@ -127,19 +128,67 @@ def update_motion_estimator(
     motion_estimator : MotionEstimator
         Norfair motion estimator class
     detections : List[Detection]
-        List of detections to hide in the mask
-    frame : np.ndarray
+        List of detections to hide in the mask    frame : np.ndarray
         Current frame
 
     Returns
     -------
-    CoordinatesTransformation
-        Coordinate transformation for the current frame
-    """
-
+    Optional[CoordinatesTransformation]
+        Coordinate transformation for the current frame, or None if motion estimation fails    """
+    
     mask = create_mask(frame=frame, detections=detections)
-    coord_transformations = motion_estimator.update(frame, mask=mask)
-    return coord_transformations
+    
+    try:
+        coord_transformations = motion_estimator.update(frame, mask=mask)
+        return coord_transformations
+    except Exception as e:
+        if "findHomography" in str(e) or "at least 4 corresponding point sets" in str(e):
+            # Not enough feature points for homography calculation
+            print(f"Warning: Not enough feature points for motion estimation. Trying fallback strategies...")
+            
+            # Fallback 1: Try with a less restrictive mask (smaller margin)
+            try:
+                if detections:
+                    detections_df = Converter.Detections_to_DataFrame(detections)
+                    fallback_mask = YoloV5.generate_predictions_mask(detections_df, frame, margin=20)
+                    # Still remove goal counter but with smaller area
+                    fallback_mask[69:200, 160:510] = 0
+                else:
+                    fallback_mask = np.ones(frame.shape[:2], dtype=frame.dtype)
+                    fallback_mask[69:200, 160:510] = 0
+                
+                coord_transformations = motion_estimator.update(frame, mask=fallback_mask)
+                print("Success with reduced margin mask.")
+                return coord_transformations
+            except Exception:
+                pass
+            
+            # Fallback 2: Try with no mask (allow detection areas)
+            try:
+                no_mask = np.ones(frame.shape[:2], dtype=frame.dtype)
+                # Only remove goal counter                no_mask[69:200, 160:510] = 0
+                
+                coord_transformations = motion_estimator.update(frame, mask=no_mask)
+                print("Success with minimal mask (goal counter only).")
+                return coord_transformations
+            except Exception:
+                pass
+            
+            # Fallback 3: Try with completely open frame (no masking)
+            try:
+                full_mask = np.ones(frame.shape[:2], dtype=frame.dtype)
+                coord_transformations = motion_estimator.update(frame, mask=full_mask)
+                print("Success with no mask.")
+                return coord_transformations
+            except Exception:
+                pass
+            
+            # All fallbacks failed, return None
+            print("All motion estimation strategies failed. Using identity transformation.")
+            return None
+        else:
+            # Re-raise other exceptions
+            raise e
 
 
 def get_main_ball(detections: List[Detection], match: Optional[Match] = None) -> Ball:
