@@ -1,7 +1,5 @@
-from typing import List, Optional, Union
+from typing import List, Optional
 
-import cv2
-import norfair
 import numpy as np
 from norfair.tracker import Detection  # type: ignore
 from norfair.camera_motion import MotionEstimator, CoordinatesTransformation  # type: ignore
@@ -48,7 +46,7 @@ def get_player_detections(
     person_detector : YoloV5
         YoloV5 detector
     frame : np.ndarray
-        _description_
+        Frame to get the player detections from
 
     Returns
     -------
@@ -65,7 +63,6 @@ def get_player_detections(
 
 def create_mask(frame: np.ndarray, detections: List[Detection]) -> np.ndarray:
     """
-
     Creates mask in order to hide detections and goal counter for motion estimation
 
     Parameters
@@ -93,34 +90,12 @@ def create_mask(frame: np.ndarray, detections: List[Detection]) -> np.ndarray:
     return mask
 
 
-def apply_mask(img: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """
-    Applies a mask to an img
-
-    Parameters
-    ----------
-    img : np.ndarray
-        Image to apply the mask to
-    mask : np.ndarray
-        Mask to apply
-
-    Returns
-    -------
-    np.ndarray
-        img with mask applied
-    """
-    masked_img = img.copy()
-    masked_img[mask == 0] = 0
-    return masked_img
-
-
 def update_motion_estimator(
     motion_estimator: MotionEstimator,
     detections: List[Detection],
     frame: np.ndarray,
 ) -> Optional[CoordinatesTransformation]:
     """
-
     Update coordinate transformations every frame
 
     Parameters
@@ -128,13 +103,15 @@ def update_motion_estimator(
     motion_estimator : MotionEstimator
         Norfair motion estimator class
     detections : List[Detection]
-        List of detections to hide in the mask    frame : np.ndarray
+        List of detections to hide in the mask
+    frame : np.ndarray
         Current frame
 
     Returns
     -------
     Optional[CoordinatesTransformation]
-        Coordinate transformation for the current frame, or None if motion estimation fails    """
+        Coordinate transformation for the current frame, or None if motion estimation fails
+    """
     
     mask = create_mask(frame=frame, detections=detections)
     
