@@ -3,11 +3,12 @@ from typing import List
 import norfair
 import numpy as np
 import pandas as pd
+from norfair.tracker import Detection  # type: ignore
 
 
 class Converter:
     @staticmethod
-    def DataFrame_to_Detections(df: pd.DataFrame) -> List[norfair.Detection]:
+    def DataFrame_to_Detections(df: pd.DataFrame) -> List[Detection]:
         """
         Converts a DataFrame to a list of norfair.Detection
 
@@ -18,7 +19,7 @@ class Converter:
 
         Returns
         -------
-        List[norfair.Detection]
+        List[Detection]
             List of norfair.Detection
         """
 
@@ -56,7 +57,7 @@ class Converter:
             if "classification" in row:
                 data["classification"] = row["classification"]
 
-            detection = norfair.Detection(
+            detection = Detection(
                 points=box,
                 data=data,
             )
@@ -66,13 +67,13 @@ class Converter:
         return detections
 
     @staticmethod
-    def Detections_to_DataFrame(detections: List[norfair.Detection]) -> pd.DataFrame:
+    def Detections_to_DataFrame(detections: List[Detection]) -> pd.DataFrame:
         """
         Converts a list of norfair.Detection to a DataFrame
 
         Parameters
         ----------
-        detections : List[norfair.Detection]
+        detections : List[Detection]
             List of norfair.Detection
 
         Returns
@@ -121,7 +122,7 @@ class Converter:
     @staticmethod
     def TrackedObjects_to_Detections(
         tracked_objects: List[norfair.tracker.TrackedObject],
-    ) -> List[norfair.Detection]:
+    ) -> List[Detection]:
         """
         Converts a list of norfair.tracker.TrackedObject to a list of norfair.Detection
 
@@ -132,7 +133,7 @@ class Converter:
 
         Returns
         -------
-        List[norfair.Detection]
+        List[Detection]
             List of norfair.Detection
         """
 
@@ -144,7 +145,9 @@ class Converter:
 
         for tracked_object in live_objects:
             detection = tracked_object.last_detection
-            detection.data["id"] = int(tracked_object.id)
+            # Handle case where id might be None
+            object_id = tracked_object.id
+            detection.data["id"] = int(object_id) if object_id is not None else 0
             detections.append(detection)
 
         return detections

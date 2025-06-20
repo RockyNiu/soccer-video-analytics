@@ -5,5 +5,4 @@ from .converter import Converter
 from .filters import TeamFilters, TeamFilter
 from .hsv_classifier import HSVClassifier
 from .inertia_classifier import InertiaClassifier
-from .nn_classifier import NNClassifier
 from .yolov5 import YoloV5

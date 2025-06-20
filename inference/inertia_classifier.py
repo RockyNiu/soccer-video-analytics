@@ -1,7 +1,7 @@
 from typing import List
 
 import numpy as np
-from norfair import Detection
+from norfair.tracker import Detection
 
 from inference.base_classifier import BaseClassifier
 

@@ -1,12 +1,12 @@
 import copy
-from typing import List
+from typing import List, Dict, Any, cast
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
 from inference.base_classifier import BaseClassifier
-from inference.colors import all
+from inference.colors import all, HSVColor
 
 
 class HSVClassifier(BaseClassifier):
@@ -90,6 +90,8 @@ class HSVClassifier(BaseClassifier):
         for value in a_tuple:
             if type(value) != int:
                 raise ValueError(f"{name} values must be ints")
+        
+        return a_tuple
 
     def check_tuple_intervals(self, a_tuple: tuple, name: str):
         """
@@ -211,7 +213,7 @@ class HSVClassifier(BaseClassifier):
         if type(filter["name"]) != str:
             raise ValueError("Filter name must be a string")
 
-        if type(filter["colors"]) != list and type(filter["colors"] != tuple):
+        if type(filter["colors"]) != list and type(filter["colors"]) != tuple:
             raise ValueError("Filter colors must be a list or tuple")
 
         filter["colors"] = [
@@ -388,29 +390,31 @@ class HSVClassifier(BaseClassifier):
 
         return max_non_black_pixels_filter["name"]
 
-    def predict(self, input_image: List[np.ndarray]) -> str:
+    def predict(self, input_image: List[np.ndarray] | np.ndarray) -> List[str]:
         """
         Predicts the name of the team from the input image.
 
         Parameters
         ----------
-        input_image : List[np.ndarray]
+        input_image : List[np.ndarray] | np.ndarray
             Image to predict
 
         Returns
         -------
-        str
-            Predicted team name
+        List[str]
+            Predicted team names
         """
 
-        if type(input_image) != list:
-            input_image = [input_image]
+        if isinstance(input_image, np.ndarray):
+            input_images = [input_image]
+        else:
+            input_images = input_image
 
-        return [self.predict_img(img) for img in input_image]
+        return [self.predict_img(img) for img in input_images]
 
     def transform_image_for_every_color(
-        self, img: np.ndarray, colors: List[dict] = None
-    ) -> List[dict]:
+        self, img: np.ndarray, colors: List[dict] | None = None
+    ) -> dict:
         """
         Transforms image for every color in every filter.
 
@@ -423,17 +427,13 @@ class HSVClassifier(BaseClassifier):
 
         Returns
         -------
-        List[dict]
-            List of Transformed images
+        dict
+            Dictionary of transformed images with color names as keys
 
-            [
-                {
-                    "red": image,
-                },
-                {
-                    "blue": image,
-                }
-            ]
+            {
+                "red": image,
+                "blue": image,
+            }
         """
         transformed_imgs = {}
 
@@ -442,11 +442,31 @@ class HSVClassifier(BaseClassifier):
             colors_to_transform = colors
 
         for color in colors_to_transform:
-            transformed_imgs[color["name"]] = self.crop_filter_and_blur_img(img, color)
+            # Convert color to dict format if needed
+            color_dict: Dict[str, Any]
+            
+            if isinstance(color, dict):
+                # Color is already a dict (including HSVColor TypedDict)
+                color_dict = cast(Dict[str, Any], color)
+            elif hasattr(color, '__dict__'):
+                # Color is an object with attributes, convert to dict
+                color_dict = color.__dict__
+            else:
+                # Skip invalid color formats
+                continue
+            
+            # Validate color format and process
+            try:
+                validated_color = self.check_color_format(color_dict)
+                transformed_imgs[validated_color["name"]] = self.crop_filter_and_blur_img(img, validated_color)
+            except (ValueError, KeyError):
+                # Skip colors that don't have valid format
+                continue
+                
         return transformed_imgs
 
     def plot_every_color_output(
-        self, img: np.ndarray, colors: List[dict] = None, save_img_path: str = None
+        self, img: np.ndarray, colors: List[dict] | None = None, save_img_path: str | None = None
     ):
         """
         Plots every color output of the image.
