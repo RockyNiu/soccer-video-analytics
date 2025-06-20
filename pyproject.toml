@@ -2,7 +2,7 @@
 name = "soccer-video-analytics"
 version = "0.1.0"
 description = ""
-authors = ["Diego Marvid <dmarvid@tryolabs.com>", "Diego Fernandez <dfernandez@tryolabs.com"]
+authors = ["Rocky Niu <lei.niu.ny@gmail.com>"]
 packages = [
     { include = "soccer" },
     { include = "inference" }
@@ -46,5 +46,5 @@ disallow_untyped_defs = false
 reportMissingTypeStubs = false
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "setuptools>=42", "wheel"]
+requires = ["poetry-core>=2.0.0", "setuptools>=42", "wheel"]
 build-backend = "poetry.core.masonry.api"

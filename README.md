@@ -4,7 +4,7 @@ This repository is a modernized fork of [Soccer Video Analytics](https://github.
 
 ## Key Improvements
 
-- **Python 3.13+ Support**: Updated to work with the latest Python version
+- **Python 3.10+ Support**: Updated to work with the latest Python version
 - **Poetry 2.0+ Package Management**: Modern dependency management and virtual environment handling
 - **Type Annotations**: Added comprehensive typing throughout the codebase for better IDE support and code reliability
 - **Unit Testing**: Implemented pytest-based test suite for core functionality validation
