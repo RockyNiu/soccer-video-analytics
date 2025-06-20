@@ -161,12 +161,15 @@ def get_main_ball(detections: List[Detection], match: Optional[Match] = None) ->
     Ball
         Main ball
     """
-    ball = Ball(detection=None)
+    # Create Ball with the first detection if available, otherwise with a default box
+    if detections:
+        ball = Ball(detection=detections[0])
+    else:
+        # Create a ball with a default box when no detections are available
+        from inference.box import Box
+        ball = Ball(box=Box(x=0, y=0, width=10, height=10))
 
     if match:
         ball.set_color(match)
-
-    if detections:
-        ball.detection = detections[0]
 
     return ball

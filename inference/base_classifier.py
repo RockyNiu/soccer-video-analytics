@@ -7,6 +7,7 @@ import cv2
 import norfair
 import numpy as np
 import pandas as pd
+from norfair.tracker import Detection
 
 from inference.box import Box
 
@@ -75,8 +76,8 @@ class BaseClassifier(ABC):
         return df
 
     def predict_from_detections(
-        self, detections: List[norfair.Detection], img: np.ndarray
-    ) -> List[norfair.Detection]:
+        self, detections: List[Detection], img: np.ndarray
+    ) -> List[Detection]:
         """
         Predicts the class of the objects in the image and adds the class in
         detection.data["classification"]
@@ -94,14 +95,22 @@ class BaseClassifier(ABC):
             List of detections with the class of the objects
         """
         if not all(
-            isinstance(detection, norfair.Detection) for detection in detections
+            isinstance(detection, Detection) for detection in detections
         ):
             raise TypeError("detections must be a list of norfair.Detection")
 
         box_images = []
 
         for detection in detections:
-            box = Box(detection.points[0], detection.points[1], img)
+            # Convert points to x, y, width, height format
+            x1, y1 = detection.points[0]
+            x2, y2 = detection.points[1]
+            x = min(x1, x2)
+            y = min(y1, y2)
+            width = abs(x2 - x1)
+            height = abs(y2 - y1)
+            
+            box = Box(x, y, width, height, img)
             box_images.append(box.img)
 
         class_name = self.predict(box_images)

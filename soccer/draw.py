@@ -96,12 +96,33 @@ class Draw:
             # Fallback - assume it's already in the right format
             rect_coords = rectangle
         
+        # Validate coordinates to prevent PIL errors
+        x1, y1, x2, y2 = rect_coords
+        
+        # Convert to integers
+        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+        
+        if x2 <= x1:
+            x2 = x1 + 1  # Ensure positive width
+        if y2 <= y1:
+            y2 = y1 + 1  # Ensure positive height
+        
+        rect_coords = (x1, y1, x2, y2)
+        
         if left:
             # Left rounded corners only
-            draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(True, False, False, True))
+            try:
+                draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(True, False, False, True))
+            except ValueError:
+                # Fallback to simple rectangle
+                draw.rectangle(rect_coords, fill=color)
         else:
             # Right rounded corners only  
-            draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(False, True, True, False))
+            try:
+                draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(False, True, True, False))
+            except ValueError:
+                # Fallback to simple rectangle
+                draw.rectangle(rect_coords, fill=color)
         
         return img
 
