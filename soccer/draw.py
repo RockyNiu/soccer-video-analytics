@@ -82,10 +82,8 @@ class Draw:
         """Draw a half-rounded rectangle on the image."""
         draw = ImageDraw.Draw(img)
         
-        # Convert rectangle to proper format
         if hasattr(rectangle, '__len__') and len(rectangle) == 2:
             if hasattr(rectangle[1], '__len__'):
-                # Handle list/tuple in rectangle[1]
                 if isinstance(rectangle[1], (list, tuple)) and len(rectangle[1]) >= 2:
                     rect_coords = (rectangle[0][0], rectangle[0][1], rectangle[1][0], rectangle[1][1])
                 else:
@@ -93,35 +91,28 @@ class Draw:
             else:
                 rect_coords = (rectangle[0][0], rectangle[0][1], rectangle[1][0], rectangle[1][1])
         else:
-            # Fallback - assume it's already in the right format
             rect_coords = rectangle
         
-        # Validate coordinates to prevent PIL errors
         x1, y1, x2, y2 = rect_coords
         
-        # Convert to integers
         x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
         
         if x2 <= x1:
-            x2 = x1 + 1  # Ensure positive width
+            x2 = x1 + 1
         if y2 <= y1:
-            y2 = y1 + 1  # Ensure positive height
+            y2 = y1 + 1
         
         rect_coords = (x1, y1, x2, y2)
         
         if left:
-            # Left rounded corners only
             try:
                 draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(True, False, False, True))
             except ValueError:
-                # Fallback to simple rectangle
                 draw.rectangle(rect_coords, fill=color)
         else:
-            # Right rounded corners only  
             try:
                 draw.rounded_rectangle(rect_coords, radius=radius, fill=color, corners=(False, True, True, False))
             except ValueError:
-                # Fallback to simple rectangle
                 draw.rectangle(rect_coords, fill=color)
         
         return img
@@ -132,7 +123,6 @@ class Draw:
         if img.mode != 'RGBA':
             img = img.convert('RGBA')
         
-        # Create alpha mask
         alpha_mask = Image.new('L', img.size, alpha)
         img.putalpha(alpha_mask)
         
@@ -154,16 +144,13 @@ class Draw:
         if font is None:
             font = ImageFont.truetype("fonts/Gidole-Regular.ttf", size=16)
         
-        # Convert origin to tuple if it's a list
         if isinstance(origin, list):
             origin = (origin[0], origin[1])
         
-        # Get text dimensions
         bbox = draw.textbbox((0, 0), text, font=font)
         text_width = bbox[2] - bbox[0]
         text_height = bbox[3] - bbox[1]
         
-        # Calculate center position
         x = origin[0] + (width - text_width) // 2
         y = origin[1] + (height - text_height) // 2
         
@@ -186,10 +173,13 @@ class PathPoint:
 
     @staticmethod
     def get_center_from_bounding_box(bounding_box: Any) -> Point:
-        """Get center point from bounding box."""
-        x1, y1 = bounding_box[0]
-        x2, y2 = bounding_box[1]
-        return (int((x1 + x2) / 2), int((y1 + y2) / 2))
+        """Get center point from bounding box or coordinate point."""
+        try:
+            x1, y1 = bounding_box[0]
+            x2, y2 = bounding_box[1]
+            return (int((x1 + x2) / 2), int((y1 + y2) / 2))
+        except (TypeError, IndexError):
+            return (int(bounding_box[0]), int(bounding_box[1]))
 
     @classmethod
     def from_abs_bbox(cls, id: int, abs_point: Any, coord_transformations: Any, color: Optional[RGB] = None, alpha: Optional[float] = None) -> 'PathPoint':
@@ -199,7 +189,6 @@ class PathPoint:
         if alpha is None:
             alpha = 1.0
         
-        # For now, assume abs_point is already in relative coordinates
         center = cls.get_center_from_bounding_box(abs_point)
         return cls(id=id, center=center, color=color, alpha=alpha)
 
@@ -215,11 +204,9 @@ class AbsolutePath:
         if detection is None:
             return
         
-        # For now, assume detection has an absolute_points attribute
         if hasattr(detection, 'absolute_points'):
             self.past_points.append(detection.absolute_points)
         else:
-            # Fallback: use detection points directly
             self.past_points.append(detection.points if hasattr(detection, 'points') else detection)
         
         self.color_by_index[len(self.past_points) - 1] = color
@@ -272,17 +259,14 @@ class AbsolutePath:
         # Convert color to RGBA with alpha
         arrow_color = (color[0], color[1], color[2], alpha)
         
-        # Draw line between points
         start_point = points[0].center
         end_point = points[-1].center
         
         draw.line([start_point, end_point], fill=arrow_color, width=width)
         
-        # Draw arrowhead
         import math
         arrow_size = width * 2
         
-        # Calculate arrow direction
         dx = end_point[0] - start_point[0]
         dy = end_point[1] - start_point[1]
         
@@ -293,22 +277,17 @@ class AbsolutePath:
         if length == 0:
             return img
             
-        # Normalize direction
         dx = dx / length
         dy = dy / length
         
-        # Calculate arrowhead points
         arrow_angle = math.pi / 6  # 30 degrees
         
-        # Left arrowhead point
         left_x = end_point[0] - arrow_size * (dx * math.cos(arrow_angle) - dy * math.sin(arrow_angle))
         left_y = end_point[1] - arrow_size * (dy * math.cos(arrow_angle) + dx * math.sin(arrow_angle))
         
-        # Right arrowhead point  
         right_x = end_point[0] - arrow_size * (dx * math.cos(-arrow_angle) - dy * math.sin(-arrow_angle))
         right_y = end_point[1] - arrow_size * (dy * math.cos(-arrow_angle) + dx * math.sin(-arrow_angle))
         
-        # Draw arrowhead
         arrow_points = [
             (int(left_x), int(left_y)),
             end_point,
@@ -333,7 +312,6 @@ class AbsolutePath:
         if len(self.past_points) < 2:
             return img
 
-        # Convert past points to PathPoint objects
         path = [
             PathPoint.from_abs_bbox(
                 id=i,
@@ -345,14 +323,12 @@ class AbsolutePath:
             for i, point in enumerate(self.past_points)
         ]
 
-        # Filter points outside frame
         path_filtered = self.filter_points_outside_frame(
             points=path,
             width=img.size[0] if hasattr(img, 'size') else 1920,
             height=img.size[1] if hasattr(img, 'size') else 1080,
         )
 
-        # Draw the path
         img = self.draw_path_slow(img=img, path=path_filtered)
         img = self.draw_path_arrows(img=img, path=path)
         return img
