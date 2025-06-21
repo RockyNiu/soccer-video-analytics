@@ -8,7 +8,7 @@ This repository is a modernized fork of [Soccer Video Analytics](https://github.
 - **Poetry 2.0+ Package Management**: Modern dependency management and virtual environment handling
 - **Type Annotations**: Added comprehensive typing throughout the codebase for better IDE support and code reliability
 - **Unit Testing**: Implemented pytest-based test suite for core functionality validation
-- **Dynamic Team Configuration**: Introduced `team_config.json` for flexible team color and label management
+- **Dynamic Team Configuration**: Enhanced `team_config.json` for comprehensive team management including colors, visual styling, match setup, and team identification
 - **Enhanced Code Quality**: Improved code structure and documentation
 
 These updates make the project more robust, easier to maintain, and more flexible for different soccer match scenarios.
@@ -45,7 +45,7 @@ To install the necessary dependencies we use [Poetry](https://python-poetry.org/
 
 ## Team Configuration
 
-This project uses a `team_config.json` file to dynamically control team labels and colors for player classification. You need to create this file in the root directory to define the teams and their corresponding jersey colors.
+This project uses a `team_config.json` file to dynamically control team information, colors, visual styling, and match setup. You need to create this file in the root directory to define the teams and their corresponding properties.
 
 ### Setting up team_config.json
 
@@ -55,24 +55,56 @@ Create a `team_config.json` file in the project root with the following structur
 {
   "teams": [
     {
-      "name": "Team A",
-      "colors": ["blue", "white"]
+      "name": "Chelsea",
+      "abbreviation": "CHE",
+      "colors": ["blue", "green"],
+      "color": [255, 0, 0],
+      "board_color": [244, 86, 64],
+      "text_color": [255, 255, 255]
     },
     {
-      "name": "Team B", 
-      "colors": ["red", "black"]
+      "name": "Man City",
+      "abbreviation": "MNC",
+      "colors": ["sky_blue"],
+      "color": [240, 230, 188],
+      "board_color": null,
+      "text_color": [0, 0, 0]
     },
     {
       "name": "Referee",
-      "colors": ["yellow"]
+      "abbreviation": "REF",
+      "colors": ["black"],
+      "color": [0, 0, 0],
+      "board_color": null,
+      "text_color": [255, 255, 255]
     }
-  ]
+  ],
+  "match": {
+    "home_team": "Chelsea",
+    "away_team": "Man City",
+    "initial_possession": "Man City"
+  }
 }
 ```
 
+### Configuration Properties
+
+#### Team Properties
+- **`name`**: Full team name (e.g., "Chelsea")
+- **`abbreviation`**: 3-letter uppercase team code (e.g., "CHE")
+- **`colors`**: Array of jersey colors for player classification (see available colors below)
+- **`color`**: RGB values [R, G, B] for team's primary display color
+- **`board_color`**: RGB values for scoreboard/UI elements (null to use primary color)
+- **`text_color`**: RGB values for text displayed over team colors
+
+#### Match Configuration
+- **`home_team`**: Name of the home team
+- **`away_team`**: Name of the away team  
+- **`initial_possession`**: Which team starts with ball possession
+
 ### Available Colors
 
-The following color names are supported:
+The following color names are supported for jersey classification:
 - `red`
 - `blue` 
 - `green`
@@ -86,30 +118,67 @@ The following color names are supported:
 - `gray`
 - `sky_blue`
 
-### Example Configuration
+### Example Configurations
 
-Here's an example configuration for a Chelsea vs Manchester City match:
+#### Basic Configuration (Legacy Format)
+```json
+{
+  "teams": [
+    {
+      "name": "Team A",
+      "abbreviation": "TMA",
+      "colors": ["blue", "white"],
+      "color": [0, 0, 255],
+      "board_color": null,
+      "text_color": [255, 255, 255]
+    },
+    {
+      "name": "Team B",
+      "abbreviation": "TMB", 
+      "colors": ["red", "black"],
+      "color": [255, 0, 0],
+      "board_color": null,
+      "text_color": [255, 255, 255]
+    }
+  ],
+  "match": {
+    "home_team": "Team A",
+    "away_team": "Team B",
+    "initial_possession": "Team A"
+  }
+}
+```
 
+#### Advanced Configuration (Chelsea vs Man City)
 ```json
 {
   "teams": [
     {
       "name": "Chelsea",
-      "colors": ["blue", "white"]
+      "abbreviation": "CHE",
+      "colors": ["blue", "white"],
+      "color": [0, 86, 179],
+      "board_color": [244, 86, 64],
+      "text_color": [255, 255, 255]
     },
     {
       "name": "Man City",
-      "colors": ["sky_blue"]
-    },
-    {
-      "name": "Referee",
-      "colors": ["black"]
+      "abbreviation": "MNC",
+      "colors": ["sky_blue"],
+      "color": [108, 171, 221],
+      "board_color": [25, 25, 112],
+      "text_color": [255, 255, 255]
     }
-  ]
+  ],
+  "match": {
+    "home_team": "Chelsea",
+    "away_team": "Man City",
+    "initial_possession": "Man City"
+  }
 }
 ```
 
-**Note**: Make sure to customize the team names and colors to match the teams in your video for accurate player classification.
+**Note**: Make sure to customize the team names, abbreviations, colors, and match setup to match the teams in your video for accurate player classification and proper team identification throughout the analysis.
 
 ## How to run
 
@@ -121,15 +190,15 @@ These flags are defined in the following table:
 
 | Argument | Description | Default value |
 | ----------- | ----------- | ----------- |
-| application | Set it to `possession` to run the possession counter or `passes` if you like to run the passes counter | None, but mandatory |
-| path-to-the-model | Path to the soccer ball model weights (`pt` format) | `models/ball.pt` |
-| path-to-the-video | Path to the input video | `videos/soccer_possession.mp4` |
-| path-to-config | Path to the team configuration JSON file | `team_config.json` |
+| `--possession` or `--passes` | Use `--possession` to run the possession counter or `--passes` to run the passes counter | None, but one is mandatory |
+| `--model` | Path to the soccer ball model weights (`pt` format) | `models/ball.pt` |
+| `--video` | Path to the input video | `videos/soccer_possession.mp4` |
+| `--config` | Path to the team configuration JSON file | `team_config.json` |
 
-The following command shows you how to run this project.
+The following command shows you how to run this project:
 
 ```
-python run.py --<application> --model <path-to-the-model> --video <path-to-the-video> --config <path-to-config>
+python run.py [--possession | --passes] [--model <path-to-model>] [--video <path-to-video>] [--config <path-to-config>]
 ```
 
 >__Warning__: You have to run this command on the root of the project folder.
