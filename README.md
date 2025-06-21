@@ -102,22 +102,6 @@ Create a `team_config.json` file in the project root with the following structur
 - **`away_team`**: Name of the away team  
 - **`initial_possession`**: Which team starts with ball possession
 
-### Available Colors
-
-The following color names are supported for jersey classification:
-- `red`
-- `blue` 
-- `green`
-- `yellow`
-- `orange`
-- `purple`
-- `pink`
-- `brown`
-- `black`
-- `white`
-- `gray`
-- `sky_blue`
-
 ### Example Configurations
 
 #### Basic Configuration (Legacy Format)
