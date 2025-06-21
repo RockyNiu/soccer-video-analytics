@@ -14,9 +14,10 @@ from run_utils import (
     get_ball_detections,
     get_main_ball,
     get_player_detections,
+    load_teams_from_config,
     update_motion_estimator,
 )
-from soccer import Match, Player, Team
+from soccer import Match, Player
 from soccer.draw import AbsolutePath
 from soccer.pass_event import Pass
 
@@ -62,18 +63,8 @@ hsv_classifier = HSVClassifier(filters=filters.to_hsv_classifier_format())
 # Add inertia to classifier
 classifier = InertiaClassifier(classifier=hsv_classifier, inertia=20)
 
-# Teams and Match
-chelsea = Team(
-    name="Chelsea",
-    abbreviation="CHE",
-    color=(255, 0, 0),
-    board_color=(244, 86, 64),
-    text_color=(255, 255, 255),
-)
-man_city = Team(name="Man City", abbreviation="MNC", color=(240, 230, 188))
-teams = [chelsea, man_city]
-match = Match(home=chelsea, away=man_city, fps=fps)
-match.team_possession = man_city
+# Teams and Match from config
+teams, match = load_teams_from_config(args.config, fps)
 
 # Tracking
 player_tracker = Tracker(

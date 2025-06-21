@@ -1,11 +1,105 @@
-from typing import List, Optional
+import json
+from typing import List, Optional, Tuple
 
 import numpy as np
 from norfair.tracker import Detection  # type: ignore
 from norfair.camera_motion import MotionEstimator, CoordinatesTransformation  # type: ignore
 
 from inference import Converter, YoloV5
-from soccer import Ball, Match
+from soccer import Ball, Match, Team
+
+
+def load_teams_from_config(config_path: str, fps: float) -> Tuple[List[Team], Match]:
+    """
+    Load teams and match configuration from a JSON config file.
+
+    Parameters
+    ----------
+    config_path : str
+        Path to the JSON configuration file
+    fps : float
+        Frames per second for the match
+
+    Returns
+    -------
+    Tuple[List[Team], Match]
+        List of Team objects and Match object configured from the config file
+
+    Raises
+    ------
+    FileNotFoundError
+        If config file doesn't exist
+    ValueError
+        If config format is invalid
+    """
+    with open(config_path, 'r') as f:
+        config = json.load(f)
+    
+    if 'teams' not in config:
+        raise ValueError("Configuration file must contain 'teams' key")
+    
+    # Create Team objects from config
+    teams = []
+    team_map = {}
+    
+    for team_config in config['teams']:
+        # Skip referee team for match purposes
+        if team_config.get('name', '').lower() == 'referee':
+            continue
+            
+        if 'name' not in team_config or 'abbreviation' not in team_config:
+            raise ValueError(f"Team config must have 'name' and 'abbreviation' keys: {team_config}")
+        
+        # Convert color arrays to tuples
+        color = tuple(team_config.get('color', [0, 0, 0]))
+        board_color = team_config.get('board_color')
+        if board_color is not None:
+            board_color = tuple(board_color)
+        text_color = tuple(team_config.get('text_color', [0, 0, 0]))
+        
+        team = Team(
+            name=team_config['name'],
+            abbreviation=team_config['abbreviation'],
+            color=color,
+            board_color=board_color,
+            text_color=text_color
+        )
+        
+        teams.append(team)
+        team_map[team.name] = team
+    
+    # Create Match object
+    match_config = config.get('match', {})
+    home_team_name = match_config.get('home_team')
+    away_team_name = match_config.get('away_team')
+    initial_possession_name = match_config.get('initial_possession')
+    
+    # Find home and away teams
+    home_team = None
+    away_team = None
+    
+    if home_team_name and home_team_name in team_map:
+        home_team = team_map[home_team_name]
+    elif teams:
+        home_team = teams[0]
+    
+    if away_team_name and away_team_name in team_map:
+        away_team = team_map[away_team_name]
+    elif len(teams) > 1:
+        away_team = teams[1]
+    
+    if not home_team or not away_team:
+        raise ValueError("Unable to determine home and away teams from configuration")
+      # Create match
+    match = Match(home=home_team, away=away_team, fps=int(fps))
+    
+    # Set initial possession
+    if initial_possession_name and initial_possession_name in team_map:
+        match.team_possession = team_map[initial_possession_name]
+    else:
+        match.team_possession = away_team  # Default to away team as in original code
+    
+    return teams, match
 
 
 def get_ball_detections(

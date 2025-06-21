@@ -2,15 +2,32 @@
   "teams": [
     {
       "name": "Chelsea",
-      "colors": ["blue", "green"]
+      "abbreviation": "CHE",
+      "colors": ["blue", "green"],
+      "color": [255, 0, 0],
+      "board_color": [244, 86, 64],
+      "text_color": [255, 255, 255]
     },
     {
       "name": "Man City",
-      "colors": ["sky_blue"]
+      "abbreviation": "MNC",
+      "colors": ["sky_blue"],
+      "color": [240, 230, 188],
+      "board_color": null,
+      "text_color": [0, 0, 0]
     },
     {
       "name": "Referee",
-      "colors": ["black"]
+      "abbreviation": "REF",
+      "colors": ["black"],
+      "color": [0, 0, 0],
+      "board_color": null,
+      "text_color": [255, 255, 255]
     }
-  ]
+  ],
+  "match": {
+    "home_team": "Chelsea",
+    "away_team": "Man City",
+    "initial_possession": "Man City"
+  }
 }
